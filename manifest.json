@@ -1,0 +1,10 @@
+{
+	"id": "zoom-transcript-to-md",
+	"name": "Transcript to Markdown",
+	"version": "1.0.0",
+	"minAppVersion": "1.5.0",
+	"description": "Convert .txt or .vtt transcript files into cleaned .md notes.",
+	"author": "Ivan Batura",
+	"authorUrl": "https://obsidian.md",
+	"isDesktopOnly": true					
+}
