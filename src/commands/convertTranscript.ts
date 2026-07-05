@@ -1,8 +1,8 @@
-import { Notice, TFile, TFolder, normalizePath, moment } from "obsidian";
+import { Notice, TFile, TFolder, normalizePath } from "obsidian";
 import TranscriptToMdPlugin from "../main";
 
-type Moment = ReturnType<typeof moment>;
 import { convertTxtToMarkdown, convertVttToMarkdown, extractDuration, extractParticipants } from "../utils/converters";
+import { typedMoment, MomentLike } from "../utils/momentTyped";
 
 /**
  * Attempts to extract a date (and optional time) from the beginning of a filename.
@@ -31,7 +31,7 @@ export function extractDateFromBasename(basename: string): number | null {
 	if (hour > 23 || min > 59 || sec > 59) return null;
 
 	// Use moment (provided by Obsidian) to build the timestamp in local time
-	const m: Moment = moment({ year, month: month - 1, day, hour, minute: min, second: sec });
+	const m: MomentLike = typedMoment({ year, month: month - 1, day, hour, minute: min, second: sec });
 	if (!m.isValid()) return null;
 
 	return m.valueOf();
@@ -91,10 +91,10 @@ export async function convertTranscript(file: TFile, plugin: TranscriptToMdPlugi
 		const format = file.extension === "vtt" ? "vtt" : "txt";
 		let meetingName = deriveMeetingName(file.basename);
 		if (meetingName === "Untitled Meeting") {
-			const timestamp: string = moment(fileCreationTime).format("YYYY-MM-DD_HH-mm-ss");
+			const timestamp: string = typedMoment(fileCreationTime).format("YYYY-MM-DD_HH-mm-ss");
 			meetingName = `Untitled Meeting ${timestamp}`;
 		}
-		const dateStr: string = moment(fileCreationTime).format("YYYY-MM-DD");
+		const dateStr: string = typedMoment(fileCreationTime).format("YYYY-MM-DD");
 
 		let frontmatter = `---\nmeeting_name: "${meetingName}"\ndate: ${dateStr}\n`;
 
