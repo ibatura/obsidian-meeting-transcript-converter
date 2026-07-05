@@ -1,5 +1,5 @@
 {
-	"id": "meeting-transcript-converter",
+	"id": "zoom-transcript-to-md",
 	"name": "Meeting Transcript Converter",
 	"version": "1.0.0",
 	"minAppVersion": "1.8.7",
