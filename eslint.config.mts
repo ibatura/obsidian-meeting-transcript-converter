@@ -37,6 +37,22 @@ export default tseslint.config(
 		},
 	},
 	{
+		// The time-format setting displays moment.js format tokens (e.g. "YYYY-MM-DD HH:mm:ss")
+		// verbatim in its description/placeholder. These are case-sensitive syntax, not prose,
+		// so exempt them from sentence-case via the rule's own ignoreRegex option rather than
+		// suppressing the rule with an inline eslint-disable comment.
+		files: ['src/ui/settingsTab.ts'],
+		rules: {
+			'obsidianmd/ui/sentence-case': [
+				'error',
+				{
+					enforceCamelCaseLower: true,
+					ignoreRegex: ['YYYY-MM-DD HH:mm:ss'],
+				},
+			],
+		},
+	},
+	{
 		// Test files mock the "obsidian" module (not available outside the Obsidian
 		// runtime), which necessarily involves loosely-typed/"any" stand-ins for the
 		// real Obsidian classes. Relax the type-safety rules here rather than in

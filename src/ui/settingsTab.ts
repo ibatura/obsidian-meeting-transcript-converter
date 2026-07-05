@@ -58,10 +58,8 @@ export class TranscriptSettingTab extends PluginSettingTab {
 
 		new Setting(containerEl)
 			.setName("Time format")
-			// eslint-disable-next-line obsidianmd/ui/sentence-case -- moment.js format tokens are case-sensitive and must be shown as-is
 			.setDesc("Timestamp format for dialog lines (moment.js). Default: YYYY-MM-DD HH:mm:ss")
 			.addText(text => text
-				// eslint-disable-next-line obsidianmd/ui/sentence-case -- moment.js format tokens are case-sensitive and must be shown as-is
 				.setPlaceholder("YYYY-MM-DD HH:mm:ss")
 				.setValue(this.plugin.settings.timeFormat)
 				.onChange(async (value) => {
