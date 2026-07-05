@@ -25,7 +25,8 @@ export default class TranscriptToMdPlugin extends Plugin {
 	}
 
 	async loadSettings() {
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+		const data = (await this.loadData()) as Partial<TranscriptPluginSettings> | null;
+		this.settings = Object.assign({}, DEFAULT_SETTINGS, data);
 	}
 
 	async saveSettings() {
@@ -54,7 +55,7 @@ export default class TranscriptToMdPlugin extends Plugin {
 
 		if (this.settings.deleteOriginalAfterConvert) {
 			try {
-				await this.app.vault.delete(file);
+				await this.app.fileManager.trashFile(file);
 			} catch (e) {
 				console.error(e);
 				new Notice("Failed to delete original transcript file");

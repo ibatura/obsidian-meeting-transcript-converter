@@ -1,10 +1,10 @@
 {
-	"id": "zoom-transcript-to-md",
-	"name": "Transcript to Markdown",
+	"id": "meeting-transcript-converter",
+	"name": "Meeting Transcript to Markdown Converter",
 	"version": "1.0.0",
-	"minAppVersion": "1.5.0",
-	"description": "Convert .txt or .vtt transcript files into cleaned .md notes.",
+	"minAppVersion": "1.8.7",
+	"description": "Convert .txt or .vtt meeting transcript files into cleaned .md notes.",
 	"author": "Ivan Batura",
-	"authorUrl": "https://obsidian.md",
-	"isDesktopOnly": true					
+	"authorUrl": "https://github.com/ibatura",
+	"isDesktopOnly": true
 }

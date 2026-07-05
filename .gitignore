@@ -8,6 +8,9 @@
 # npm
 node_modules
 
+# test coverage output
+coverage
+
 
 # Exclude sourcemaps
 *.map

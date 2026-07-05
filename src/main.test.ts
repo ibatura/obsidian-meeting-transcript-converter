@@ -46,6 +46,9 @@ describe('TranscriptToMdPlugin', () => {
                 on: vi.fn(),
                 delete: vi.fn()
             },
+            fileManager: {
+                trashFile: vi.fn()
+            },
             workspace: {}
         };
         plugin = new TranscriptToMdPlugin(appMock, {} as any);
@@ -112,7 +115,7 @@ describe('TranscriptToMdPlugin', () => {
             await plugin.handleFileCreate(file);
             
             expect(mockConvertTranscript).toHaveBeenCalledWith(file, plugin, false);
-            expect(appMock.vault.delete).not.toHaveBeenCalled();
+            expect(appMock.fileManager.trashFile).not.toHaveBeenCalled();
         });
 
         it('converts correctly and deletes if deleteOriginal is true', async () => {
@@ -125,7 +128,7 @@ describe('TranscriptToMdPlugin', () => {
             await plugin.handleFileCreate(file);
             
             expect(mockConvertTranscript).toHaveBeenCalledWith(file, plugin, false);
-            expect(appMock.vault.delete).toHaveBeenCalledWith(file);
+            expect(appMock.fileManager.trashFile).toHaveBeenCalledWith(file);
         });
     });
 });

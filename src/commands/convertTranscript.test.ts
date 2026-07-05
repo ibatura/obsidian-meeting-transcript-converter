@@ -144,16 +144,16 @@ describe('convertTranscript', () => {
         
         mockVault.getAbstractFileByPath.mockImplementation((path: string) => {
             if (path === 'Transcripts') return folderInstance;
-            if (path === 'Transcripts/meeting_saved_closed_caption.md') return fileInstance;
+            if (path === 'Transcripts/Untitled Meeting mocked-time.md') return fileInstance;
             return null;
         });
-        
+
         await convertTranscript(mockFile as any, mockPlugin, false);
-        
+
         expect(mockVault.modify).toHaveBeenCalled();
         const modifyArgs = mockVault.modify.mock.calls[0];
         expect(modifyArgs[0]).toBe(fileInstance);
-        expect(modifyArgs[1]).toContain('meeting_name: "Untitled Meeting"');
+        expect(modifyArgs[1]).toContain('meeting_name: "Untitled Meeting mocked-time"');
     });
 
     it('shows notice if output path exists but is not a folder', async () => {

@@ -62,7 +62,7 @@ export function registerConvertCommand(plugin: TranscriptToMdPlugin) {
 			const file = plugin.app.workspace.getActiveFile();
 			if (file && (file.extension === 'txt' || file.extension === 'vtt')) {
 				if (!checking) {
-					convertTranscript(file, plugin);
+					void convertTranscript(file, plugin);
 				}
 				return true;
 			}
