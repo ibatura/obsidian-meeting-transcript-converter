@@ -47,7 +47,7 @@ const DEFAULT_SETTINGS: TranscriptPluginSettings = {
 Settings are persisted via Obsidian's built-in `Plugin.loadData()` / `Plugin.saveData()` methods, which store a JSON file at:
 
 ```
-<vault>/.obsidian/plugins/zoom-transcript-to-md/data.json
+<vault>/.obsidian/plugins/meeting-transcript-converter/data.json
 ```
 
 On load, saved values are merged over defaults using `Object.assign({}, DEFAULT_SETTINGS, await this.loadData())`. This means new settings added in future versions automatically get their default values for existing users.

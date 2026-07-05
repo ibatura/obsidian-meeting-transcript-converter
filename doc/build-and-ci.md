@@ -120,6 +120,6 @@ This allows older Obsidian versions to download compatible plugin releases.
 
 1. `npm install` — install dependencies.
 2. `npm run dev` — start esbuild in watch mode.
-3. Symlink or copy `main.js`, `manifest.json`, `styles.css` to `<vault>/.obsidian/plugins/zoom-transcript-to-md/`.
+3. Symlink or copy `main.js`, `manifest.json`, `styles.css` to `<vault>/.obsidian/plugins/meeting-transcript-converter/`.
 4. In Obsidian: **Settings → Community plugins** → enable the plugin.
 5. Reload Obsidian (or use the "Reload plugin" command) after rebuilds.

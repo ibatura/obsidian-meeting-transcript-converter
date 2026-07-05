@@ -2,7 +2,7 @@
 
 ## Overview
 
-**Transcript to Markdown** is an Obsidian community plugin that converts `.txt` and `.vtt` transcript files into cleaned `.md` notes. It runs entirely offline — all processing happens locally inside the user's vault.
+**Meeting Transcript to Markdown Converter** is an Obsidian community plugin that converts `.txt` and `.vtt` transcript files into cleaned `.md` notes. It runs entirely offline — all processing happens locally inside the user's vault.
 
 The plugin is **desktop-only** (`isDesktopOnly: true`) and is built with TypeScript, bundled by esbuild into a single `main.js` file loaded by Obsidian at runtime.
 

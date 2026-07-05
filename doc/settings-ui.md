@@ -4,7 +4,7 @@ Source: `src/ui/settingsTab.ts`
 
 ## Overview
 
-The plugin provides a settings tab accessible via **Settings → Community plugins → Transcript to Markdown**. The tab is implemented as `TranscriptSettingTab`, extending Obsidian's `PluginSettingTab`.
+The plugin provides a settings tab accessible via **Settings → Community plugins → Meeting Transcript to Markdown Converter**. The tab is implemented as `TranscriptSettingTab`, extending Obsidian's `PluginSettingTab`.
 
 ## Settings Controls
 

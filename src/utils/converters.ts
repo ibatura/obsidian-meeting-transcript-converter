@@ -86,7 +86,7 @@ export function extractDuration(content: string, format: "vtt" | "txt"): string 
 export function convertTxtToMarkdown(content: string, _timeFormat: string, fileCreationTime: number): string {
     const lines = content.split(/\r?\n/);
     const mdLines: string[] = [];
-    const datePrefix = moment(fileCreationTime).format("YYYY-MM-DD");
+    const datePrefix: string = moment(fileCreationTime).format("YYYY-MM-DD");
 
     for (const line of lines) {
         const trimmed = line.trim();
@@ -159,7 +159,7 @@ export function convertVttToMarkdown(content: string, timeFormat: string, fileCr
         if (block.text.length === 0) continue;
         const text = block.text.join(" ");
         if (block.timeOffset !== undefined && timeFormat) {
-            const blockTime = moment(fileCreationTime + block.timeOffset).format(timeFormat);
+            const blockTime: string = moment(fileCreationTime + block.timeOffset).format(timeFormat);
             mdLines.push(`- **[${blockTime}]** ${text}`);
         } else {
             mdLines.push(`- ${text}`);

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project overview
 
-**Transcript to Markdown** (`zoom-transcript-to-md`) is an Obsidian community plugin that converts `.txt` and `.vtt` transcript files into cleaned `.md` notes, entirely offline. It is desktop-only (`isDesktopOnly: true`), written in TypeScript, and bundled by esbuild into a single `main.js` loaded by Obsidian at runtime.
+**Meeting Transcript to Markdown Converter** (`meeting-transcript-converter`) is an Obsidian community plugin that converts `.txt` and `.vtt` transcript files into cleaned `.md` notes, entirely offline. It is desktop-only (`isDesktopOnly: true`), written in TypeScript, and bundled by esbuild into a single `main.js` loaded by Obsidian at runtime.
 
 Detailed specs live in `doc/`: `architecture.md`, `converters.md`, `data-model.md`, `commands-and-events.md`, `settings-ui.md`, `build-and-ci.md`, `testing.md`, `features.md`. Read the relevant one before making non-trivial changes — they're kept accurate and are more detailed than what's summarized here. `sdd/transcript_to_md_sdd.md` and `tasks/*.md` hold the original spec-driven design/task history.
 
@@ -24,7 +24,7 @@ npx vitest run src/utils/converters.test.ts   # single test file
 npx vitest run -t "name of test"              # single test by name
 ```
 
-Manual install for testing in Obsidian: copy `main.js`, `manifest.json`, `styles.css` to `<vault>/.obsidian/plugins/zoom-transcript-to-md/`, then enable in Settings → Community plugins.
+Manual install for testing in Obsidian: copy `main.js`, `manifest.json`, `styles.css` to `<vault>/.obsidian/plugins/meeting-transcript-converter/`, then enable in Settings → Community plugins.
 
 CI (`.github/workflows/lint.yml`) runs `npm ci`, `npm run build --if-present`, `npm run lint` on Node 20.x/22.x for every push/PR.
 
@@ -52,7 +52,7 @@ Conversion picks `convertTxtToMarkdown` or `convertVttToMarkdown` based on exten
 
 VTT parsing (`convertVttToMarkdown` + `parseVttTimeOffset`) accumulates cue blocks (`{ timeOffset?: number; text: string[] }`), handling both `HH:MM:SS.mmm` and `MM:SS.mmm` timestamp formats, and formats each as `- **[{moment(fileCreationTime + timeOffset).format(timeFormat)}]** {text}` (or a plain bullet if `timeFormat` is empty). Known limitation: `<v Speaker>` voice tags are not stripped and pass through as raw text.
 
-Settings (`TranscriptPluginSettings`) persist via `Plugin.loadData()`/`saveData()` at `<vault>/.obsidian/plugins/zoom-transcript-to-md/data.json`, merged over `DEFAULT_SETTINGS` on load (`Object.assign`) so new settings get defaults for existing users. Every settings-tab control saves immediately on change (no explicit Save button).
+Settings (`TranscriptPluginSettings`) persist via `Plugin.loadData()`/`saveData()` at `<vault>/.obsidian/plugins/meeting-transcript-converter/data.json`, merged over `DEFAULT_SETTINGS` on load (`Object.assign`) so new settings get defaults for existing users. Every settings-tab control saves immediately on change (no explicit Save button).
 
 ## SDD process
 
