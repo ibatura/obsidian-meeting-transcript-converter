@@ -15,8 +15,8 @@ export class TranscriptSettingTab extends PluginSettingTab {
 		containerEl.empty();
 
 		new Setting(containerEl)
-			.setName("Output Folder")
-			.setDesc("The vault folder where converted markdown files will be saved.")
+			.setName("Output folder")
+			.setDesc("The vault folder where converted Markdown files will be saved.")
 			.addText(text => text
 				.setPlaceholder("Transcripts")
 				.setValue(this.plugin.settings.outputFolder)
@@ -58,8 +58,10 @@ export class TranscriptSettingTab extends PluginSettingTab {
 
 		new Setting(containerEl)
 			.setName("Time format")
+			// eslint-disable-next-line obsidianmd/ui/sentence-case -- moment.js format tokens are case-sensitive and must be shown as-is
 			.setDesc("Timestamp format for dialog lines (moment.js). Default: YYYY-MM-DD HH:mm:ss")
 			.addText(text => text
+				// eslint-disable-next-line obsidianmd/ui/sentence-case -- moment.js format tokens are case-sensitive and must be shown as-is
 				.setPlaceholder("YYYY-MM-DD HH:mm:ss")
 				.setValue(this.plugin.settings.timeFormat)
 				.onChange(async (value) => {

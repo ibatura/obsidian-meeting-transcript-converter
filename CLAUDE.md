@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project overview
 
-**Meeting Transcript to Markdown Converter** (`meeting-transcript-converter`) is an Obsidian community plugin that converts `.txt` and `.vtt` transcript files into cleaned `.md` notes, entirely offline. It is desktop-only (`isDesktopOnly: true`), written in TypeScript, and bundled by esbuild into a single `main.js` loaded by Obsidian at runtime.
+**Meeting Transcript Converter** (plugin id `meeting-transcript-converter`) is an Obsidian community plugin that converts `.txt` and `.vtt` transcript files into cleaned `.md` notes, entirely offline. It is desktop-only (`isDesktopOnly: true`), written in TypeScript, and bundled by esbuild into a single `main.js` loaded by Obsidian at runtime.
 
 Detailed specs live in `doc/`: `architecture.md`, `converters.md`, `data-model.md`, `commands-and-events.md`, `settings-ui.md`, `build-and-ci.md`, `testing.md`, `features.md`. Read the relevant one before making non-trivial changes — they're kept accurate and are more detailed than what's summarized here. `sdd/transcript_to_md_sdd.md` and `tasks/*.md` hold the original spec-driven design/task history.
 

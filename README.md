@@ -1,4 +1,4 @@
-# Meeting Transcript to Markdown Converter
+# Meeting Transcript Converter
 
 Convert `.txt` and `.vtt` transcript files into clean Markdown notes, entirely offline. Built for meeting transcripts (e.g. Zoom recordings) but works with any plain-text or WebVTT transcript.
 
@@ -22,7 +22,7 @@ This plugin is desktop-only and does not send data anywhere — all conversion h
 
 ### Auto-conversion
 
-1. Open **Settings → Meeting Transcript to Markdown Converter**.
+1. Open **Settings → Meeting Transcript Converter**.
 2. Enable **Auto-convert new transcripts**.
 3. Set **Watch folder** to the vault folder you want monitored (leave empty to watch the whole vault).
 4. Any `.txt` or `.vtt` file created in that folder is converted automatically. Enable **Delete original file after convert** if you don't want to keep the source file around.
@@ -65,7 +65,7 @@ Manual install:
 
 1. Download `main.js`, `manifest.json`, and `styles.css` from the [latest release](../../releases).
 2. Copy them into `<vault>/.obsidian/plugins/meeting-transcript-converter/`.
-3. Reload Obsidian and enable **Meeting Transcript to Markdown Converter** under Settings → Community plugins.
+3. Reload Obsidian and enable **Meeting Transcript Converter** under Settings → Community plugins.
 
 ## Development
 
