@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('obsidian', () => {
-    class MockTFolder {}
-    class MockTFile {}
+    class MockTFolder { }
+    class MockTFile { }
     return {
         Notice: vi.fn(),
         TFolder: MockTFolder,
@@ -94,7 +94,7 @@ describe('convertTranscript', () => {
         const callArgs = mockPlugin.addCommand.mock.calls[0][0];
         expect(callArgs.id).toBe('convert-transcript-file');
         expect(callArgs.checkCallback).toBeInstanceOf(Function);
-        
+
         // Test checkCallback with wrong file type
         mockWorkspace.getActiveFile.mockReturnValue({ extension: 'md' });
         expect(callArgs.checkCallback(true)).toBe(false);
@@ -112,14 +112,14 @@ describe('convertTranscript', () => {
         };
         mockVault.read.mockResolvedValue('[Alice] 12:00:00\nHello');
         mockVault.getAbstractFileByPath.mockReturnValueOnce(undefined); // folder doesn't exist
-        
+
         // Mock TFile and TFolder
         const folderInstance = new TFolder();
         mockVault.getAbstractFileByPath.mockReturnValueOnce(folderInstance); // after createFolder
         mockVault.getAbstractFileByPath.mockReturnValueOnce(null); // targetFile doesn't exist
-        
+
         await convertTranscript(mockFile as any, mockPlugin, false);
-        
+
         expect(mockVault.read).toHaveBeenCalledWith(mockFile);
         expect(mockVault.createFolder).toHaveBeenCalledWith('Transcripts');
         expect(mockVault.create).toHaveBeenCalled();
@@ -138,10 +138,10 @@ describe('convertTranscript', () => {
             stat: { ctime: 1700000000000 }
         };
         mockVault.read.mockResolvedValue('WEBVTT\n\n00:00.000 --> 00:05.000\nHello');
-        
+
         const folderInstance = new TFolder();
         const fileInstance = new TFile();
-        
+
         mockVault.getAbstractFileByPath.mockImplementation((path: string) => {
             if (path === 'Transcripts') return folderInstance;
             if (path === 'Transcripts/Untitled Meeting mocked-time.md') return fileInstance;
@@ -163,12 +163,12 @@ describe('convertTranscript', () => {
             stat: { ctime: 1700000000000 }
         };
         mockVault.read.mockResolvedValue('Test');
-        
+
         const fileInstance = new TFile(); // Not a TFolder
         mockVault.getAbstractFileByPath.mockReturnValue(fileInstance);
-        
+
         await convertTranscript(mockFile as any, mockPlugin, false);
-        
+
         // modify/create shouldn't be called because the folder wasn't valid
         expect(mockVault.create).not.toHaveBeenCalled();
         expect(mockVault.modify).not.toHaveBeenCalled();
@@ -181,11 +181,11 @@ describe('convertTranscript', () => {
             stat: { ctime: 1700000000000 }
         };
         mockVault.read.mockRejectedValue(new Error('Read failed'));
-        
-        const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-        
+
+        const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => { });
+
         await convertTranscript(mockFile as any, mockPlugin, false);
-        
+
         expect(consoleSpy).toHaveBeenCalledWith("Transcript conversion failed:", expect.any(Error));
         consoleSpy.mockRestore();
     });
@@ -350,7 +350,7 @@ describe('convertTranscript date source priority', () => {
 
         // Build expected date string from the same epoch (local tz, same as mock)
         const d = new Date(ctime);
-        const expected = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+        const expected = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
         const createArgs = mockVault.create.mock.calls[0];
         expect(createArgs[1]).toContain(`date: ${expected}`);
@@ -375,5 +375,73 @@ describe('convertTranscript date source priority', () => {
         // Date should come from filename (2025-01-15), NOT ctime
         expect(createArgs[1]).toContain('date: 2025-01-15');
         expect(createArgs[1]).not.toContain('date: 2023-11-14');
+    });
+});
+
+describe('convertTranscript vtt dialect routing', () => {
+    let mockVault: any;
+    let mockPlugin: any;
+
+    beforeEach(() => {
+        mockVault = {
+            read: vi.fn(),
+            getAbstractFileByPath: vi.fn(),
+            createFolder: vi.fn(),
+            modify: vi.fn(),
+            create: vi.fn()
+        };
+        mockPlugin = {
+            app: { vault: mockVault, workspace: { getActiveFile: vi.fn() } },
+            addCommand: vi.fn(),
+            settings: { timeFormat: 'YYYY-MM-DD HH:mm:ss', outputFolder: 'Transcripts' }
+        };
+        mockVault.getAbstractFileByPath.mockReturnValueOnce(new TFolder()); // output folder
+        mockVault.getAbstractFileByPath.mockReturnValueOnce(null);          // target file
+    });
+
+    it('converts a voice-tagged (Teams) vtt into speaker lines with participants', async () => {
+        const mockFile = {
+            extension: 'vtt',
+            basename: '2026-07-31_valuation',
+            stat: { ctime: 1700000000000 }
+        };
+        mockVault.read.mockResolvedValue(`WEBVTT
+
+2eb325bb-1b35-4dac-b37b-c7a00c2a68d3/10-0
+00:00:01.000 --> 00:00:03.000
+<v Kate Kan>Hey!</v>
+
+2eb325bb-1b35-4dac-b37b-c7a00c2a68d3/14-0
+00:00:04.000 --> 00:00:06.000
+<v Ivan Kan>Yeah, I was mute.</v>
+`);
+
+        await convertTranscript(mockFile as any, mockPlugin, false);
+
+        const content = mockVault.create.mock.calls[0][1];
+        expect(content).toContain('participants:\n  - "Ivan Kan"\n  - "Kate Kan"');
+        expect(content).toContain('[Kate Kan] 2026-07-31 00:00:01\nHey!');
+        expect(content).toContain('[Ivan Kan] 2026-07-31 00:00:04\nYeah, I was mute.');
+        expect(content).not.toContain('2eb325bb');
+        expect(content).not.toContain('<v ');
+    });
+
+    it('keeps bulleted output for a vtt without voice tags', async () => {
+        const mockFile = {
+            extension: 'vtt',
+            basename: '2026-07-31_standup',
+            stat: { ctime: 1700000000000 }
+        };
+        mockVault.read.mockResolvedValue(`WEBVTT
+
+1
+00:00:01.000 --> 00:00:03.000
+Alice: Hello there
+`);
+
+        await convertTranscript(mockFile as any, mockPlugin, false);
+
+        const content = mockVault.create.mock.calls[0][1];
+        expect(content).toContain('- **[2026-07-31 00:00:01]** Alice: Hello there');
     });
 });

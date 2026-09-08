@@ -58,8 +58,8 @@ The value is trimmed on change. An empty value means the entire vault is watched
 |-------------|----------------------------------------------------------------|
 | Type        | Text input                                                     |
 | Label       | "Time format"                                                  |
-| Description | "Moment.js format for the timestamp of the transcript. Default: HH:mm:ss DD:MM:YYYY" |
-| Placeholder | `HH:mm:ss DD:MM:YYYY`                                         |
+| Description | "Timestamp format for bulleted caption lines (moment.js). Default: YYYY-MM-DD HH:mm:ss. Speaker lines from Teams and Zoom transcripts always use YYYY-MM-DD HH:mm:ss." |
+| Placeholder | `YYYY-MM-DD HH:mm:ss`                                         |
 | Binding     | `settings.timeFormat`                                          |
 
 Accepts any Moment.js format string. Common examples: `HH:mm:ss`, `hh:mm A`, `YYYY-MM-DD HH:mm`.

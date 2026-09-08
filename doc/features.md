@@ -19,9 +19,10 @@ Command Palette → "Convert transcript file (txt/vtt) to Markdown"
 ### Behavior
 
 1. Read the active file's content via `vault.read()`.
-2. Determine the converter based on file extension:
-   - `.txt` → `convertTxtToMarkdown(content)`
-   - `.vtt` → `convertVttToMarkdown(content, timeFormat, fileCreationTime)`
+2. Determine the converter based on file extension, and for `.vtt` on the detected dialect:
+   - `.txt` → `convertTxtToMarkdown(content, timeFormat, fileCreationTime)`
+   - `.vtt` naming its speakers in voice tags → `convertTeamsVttToMarkdown(content, timeFormat, fileCreationTime)`
+   - any other `.vtt` → `convertVttToMarkdown(content, timeFormat, fileCreationTime)`
 3. Generate a title from the file's basename (underscores replaced with spaces), prepended as `# {title}`.
 4. Resolve `outputFolder` path. Create the folder if it does not exist.
 5. Build target path: `{outputFolder}/{basename}.md`.
@@ -100,7 +101,7 @@ Users configure plugin behavior through the Obsidian settings panel.
 | Watch folder                   | Text input | Vault path to monitor for new transcripts (empty = all)     |
 | Auto-convert new transcripts   | Toggle    | Enable/disable automatic conversion on file create          |
 | Delete original after convert  | Toggle    | Remove source file after successful conversion              |
-| Time format                    | Text input | Moment.js format string for VTT timestamp display           |
+| Time format                    | Text input | Moment.js format string for bulleted VTT timestamps (speaker lines are fixed) |
 
 See [settings-ui.md](settings-ui.md) for full UI specification.
 
@@ -130,11 +131,49 @@ VTT cue timestamps are converted to human-readable format using the file's creat
 
 - If `timeFormat` is empty, timestamps are omitted and cues render as plain bullets.
 - VTT files with `MM:SS.mmm` format (no hours) are supported.
+- Speaker-attributed VTT files compute timestamps the same way but render through F-005, which fixes the display format and ignores `timeFormat`.
 
 ### Acceptance Criteria
 
-- [ ] Timestamps display correctly with default format `HH:mm:ss DD:MM:YYYY`.
+- [ ] Timestamps display correctly with the default format `YYYY-MM-DD HH:mm:ss`.
 - [ ] Custom time formats are respected.
 - [ ] Empty time format suppresses timestamp display.
 - [ ] Both `HH:MM:SS.mmm` and `MM:SS.mmm` VTT time formats are parsed.
 
+---
+
+## F-005: Microsoft Teams Transcript Support
+
+### Summary
+
+`.vtt` transcripts exported from Microsoft Teams are recognised automatically and converted into the speaker-per-turn layout the plugin produces for Zoom `.txt` transcripts.
+
+### Trigger
+
+Any `.vtt` conversion — manual (F-001) or automatic (F-002). No setting is involved.
+
+### Detection
+
+`detectVttDialect(content)` returns `"speaker"` when any cue carries a `<v Name>` voice tag. Detection reads the transcript's content only, never its filename or folder. Every other `.vtt` file continues through the bulleted path unchanged.
+
+### Behavior
+
+1. Parse cues with `parseVttCues`, discarding the `WEBVTT` header, `NOTE` blocks and cue identifiers — including the `{guid}/{n}-{n}` identifiers Teams emits — and stripping voice tags and other inline caption markup.
+2. Merge consecutive cues from the same speaker into one turn, stamped at the first cue's time. A change of speaker always opens a new turn.
+3. Render each turn as `[{speaker}] {absolute time}` followed by the spoken text on the next line, using the same `fileCreationTime + offset` rule as F-004 but a fixed `YYYY-MM-DD HH:mm:ss` format, so Teams notes match Zoom TXT notes exactly.
+4. Populate the `participants` property from the voice-tag speakers, de-duplicated and sorted.
+
+### Edge Cases
+
+- The `timeFormat` setting does not apply; it governs the bulleted VTT output only.
+- A cue with no speaker in an otherwise speaker-attributed transcript → its text is emitted alone, and it interrupts any run of merged cues.
+- Cue order is preserved. Teams interleaves overlapping speakers; no re-ordering is attempted.
+
+### Acceptance Criteria
+
+- [ ] Teams transcripts convert with no cue identifiers and no caption markup in the output.
+- [ ] Each turn renders as a bracketed speaker plus absolute timestamp, with the text on the next line.
+- [ ] Consecutive cues from one speaker merge into a single turn stamped at the first cue's time.
+- [ ] `participants` lists every distinct speaker exactly once, alphabetically.
+- [ ] Timestamps read `YYYY-MM-DD HH:mm:ss` whatever the `timeFormat` setting holds.
+- [ ] A `.vtt` file with no voice tags still converts to bullets exactly as before.

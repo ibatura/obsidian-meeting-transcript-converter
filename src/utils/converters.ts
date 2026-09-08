@@ -12,6 +12,16 @@ export function extractParticipants(content: string, format: "vtt" | "txt"): str
             }
         }
     } else {
+        // Speaker-attributed transcripts (Microsoft Teams) name their speakers in
+        // voice tags; trust those and skip the "Name: " heuristic, which would
+        // otherwise read ordinary sentences containing a colon as speakers.
+        const voiced = parseVttCues(content)
+            .map((cue) => cue.speaker)
+            .filter((name): name is string => Boolean(name));
+        if (voiced.length > 0) {
+            return Array.from(new Set(voiced)).sort();
+        }
+
         const ignore = /^(http|https|note|todo)/i;
         for (const line of lines) {
             const trimmed = line.trim();
@@ -123,47 +133,157 @@ export function parseVttTimeOffset(vttTime: string): number {
     return seconds * 1000;
 }
 
-export function convertVttToMarkdown(content: string, timeFormat: string, fileCreationTime: number): string {
+/** A single parsed VTT cue: its start offset, the speaker naming it (if any), and its plain text. */
+export interface VttCue {
+    offsetMs?: number;
+    speaker?: string;
+    text: string;
+}
+
+const VTT_TIMESTAMP_LINE = /^(\d{2}:\d{2}:\d{2}\.\d{3}|\d{2}:\d{2}\.\d{3})\s*-->/;
+const VTT_VOICE_TAG = /^<v(?:\.[^\s>]+)*(?:\s+([^>]*))?>/i;
+
+/** Removes voice tags, cue spans and karaoke timestamps, leaving readable text. */
+function stripVttMarkup(text: string): string {
+    return text.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+}
+
+/**
+ * A line is a cue identifier when it opens a cue block and the next non-empty
+ * line is a timestamp. This covers plain sequence numbers as well as the
+ * `{guid}/{n}-{n}` identifiers Microsoft Teams emits.
+ */
+function isCueIdentifierLine(lines: string[], index: number): boolean {
+    for (let i = index + 1; i < lines.length; i++) {
+        const next = (lines[i] ?? "").trim();
+        if (!next) continue;
+        return VTT_TIMESTAMP_LINE.test(next);
+    }
+    return false;
+}
+
+/**
+ * Parses WebVTT content into cues, discarding the header, NOTE blocks and cue
+ * identifiers. Multi-line cue text is joined with spaces; a leading `<v Name>`
+ * voice tag becomes the cue's speaker.
+ */
+export function parseVttCues(content: string): VttCue[] {
     const lines = content.split(/\r?\n/);
+    const cues: VttCue[] = [];
+    let current: { offsetMs?: number; text: string[] } | null = null;
+    let inNote = false;
 
-    const blocks: { timeOffset?: number; text: string[] }[] = [];
-    let current: { timeOffset?: number; text: string[] } | null = null;
+    const flush = () => {
+        if (!current) return;
+        const raw = current.text.join(" ").trim();
+        const text = stripVttMarkup(raw);
+        if (text) {
+            const cue: VttCue = { text };
+            if (current.offsetMs !== undefined) cue.offsetMs = current.offsetMs;
+            const speaker = raw.match(VTT_VOICE_TAG)?.[1]?.trim();
+            if (speaker) cue.speaker = speaker;
+            cues.push(cue);
+        }
+        current = null;
+    };
 
-    for (const line of lines) {
-        const trimmed = line.trim();
-        if (!trimmed) continue;
+    for (let i = 0; i < lines.length; i++) {
+        const trimmed = (lines[i] ?? "").trim();
 
+        if (!trimmed) {
+            inNote = false;
+            flush();
+            continue;
+        }
+        if (inNote) continue;
         if (/^WEBVTT/i.test(trimmed)) continue;
-        if (/^\d+$/.test(trimmed)) continue; // ignore sequence numbers
-        
-        // Match timestamp line: "00:01:23.456 --> 00:01:25.000" or "01:23.456 --> 01:25.000"
-        const timeMatch = trimmed.match(/^(\d{2}:\d{2}:\d{2}\.\d{3}|\d{2}:\d{2}\.\d{3})\s-->/);
+        if (/^NOTE(\s|$)/.test(trimmed)) {
+            inNote = true;
+            continue;
+        }
+
+        const timeMatch = trimmed.match(VTT_TIMESTAMP_LINE);
         if (timeMatch && timeMatch[1]) {
-            if (current && current.text.length > 0) blocks.push(current);
-            const offsetMs = parseVttTimeOffset(timeMatch[1]);
-            current = { timeOffset: offsetMs, text: [] };
+            flush();
+            current = { offsetMs: parseVttTimeOffset(timeMatch[1]), text: [] };
             continue;
         }
 
         if (!current) {
+            if (isCueIdentifierLine(lines, i)) continue;
             current = { text: [] };
         }
 
         current.text.push(trimmed);
     }
 
-    if (current && current.text.length > 0) blocks.push(current);
+    flush();
+
+    return cues;
+}
+
+/**
+ * Reports whether a VTT transcript names its speakers ("speaker", e.g. Microsoft
+ * Teams) or carries plain captions ("plain", e.g. Zoom and most caption tools).
+ */
+export function detectVttDialect(content: string): "speaker" | "plain" {
+    return parseVttCues(content).some((cue) => cue.speaker) ? "speaker" : "plain";
+}
+
+export function convertVttToMarkdown(content: string, timeFormat: string, fileCreationTime: number): string {
+    const mdLines: string[] = [];
+
+    for (const cue of parseVttCues(content)) {
+        if (cue.offsetMs !== undefined && timeFormat) {
+            const blockTime: string = typedMoment(fileCreationTime + cue.offsetMs).format(timeFormat);
+            mdLines.push(`- **[${blockTime}]** ${cue.text}`);
+        } else {
+            mdLines.push(`- ${cue.text}`);
+        }
+    }
+
+    return mdLines.join("\n");
+}
+
+/** Speaker lines always carry a full date and time, matching convertTxtToMarkdown. */
+const SPEAKER_LINE_TIME_FORMAT = "YYYY-MM-DD HH:mm:ss";
+
+/**
+ * Converts a speaker-attributed VTT transcript (Microsoft Teams) into the same
+ * layout the plugin produces for Zoom TXT transcripts: a `[Speaker] {time}` line
+ * followed by the spoken text. Consecutive cues from one speaker form one turn,
+ * stamped at the moment that turn began.
+ *
+ * Note: _timeFormat is accepted to match the VTT converter signature but not used.
+ * Like convertTxtToMarkdown, this layout always stamps `YYYY-MM-DD HH:mm:ss`, so
+ * Teams and Zoom notes read identically whatever the time-format setting holds.
+ */
+export function convertTeamsVttToMarkdown(content: string, _timeFormat: string, fileCreationTime: number): string {
+    const turns: { offsetMs?: number; speaker?: string; text: string[] }[] = [];
+
+    for (const cue of parseVttCues(content)) {
+        const last = turns[turns.length - 1];
+        if (last && cue.speaker && last.speaker === cue.speaker) {
+            last.text.push(cue.text);
+            continue;
+        }
+        const turn: { offsetMs?: number; speaker?: string; text: string[] } = { text: [cue.text] };
+        if (cue.offsetMs !== undefined) turn.offsetMs = cue.offsetMs;
+        if (cue.speaker) turn.speaker = cue.speaker;
+        turns.push(turn);
+    }
 
     const mdLines: string[] = [];
-    for (const block of blocks) {
-        if (block.text.length === 0) continue;
-        const text = block.text.join(" ");
-        if (block.timeOffset !== undefined && timeFormat) {
-            const blockTime: string = typedMoment(fileCreationTime + block.timeOffset).format(timeFormat);
-            mdLines.push(`- **[${blockTime}]** ${text}`);
-        } else {
-            mdLines.push(`- ${text}`);
+    for (const turn of turns) {
+        if (turn.speaker) {
+            if (turn.offsetMs !== undefined) {
+                const turnTime: string = typedMoment(fileCreationTime + turn.offsetMs).format(SPEAKER_LINE_TIME_FORMAT);
+                mdLines.push(`[${turn.speaker}] ${turnTime}`);
+            } else {
+                mdLines.push(`[${turn.speaker}]`);
+            }
         }
+        mdLines.push(turn.text.join(" "));
     }
 
     return mdLines.join("\n");

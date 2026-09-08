@@ -26,7 +26,7 @@ interface TranscriptPluginSettings {
 | `watchFolder`                | `string`  | `"Transcripts"`           | Vault-relative path. Empty string means watch entire vault. |
 | `autoConvertEnabled`         | `boolean` | `false`                   | Must be explicitly enabled by user.               |
 | `deleteOriginalAfterConvert` | `boolean` | `false`                   | Only deletes after successful conversion.         |
-| `timeFormat`                 | `string`  | `"HH:mm:ss DD:MM:YYYY"`  | Any valid Moment.js format token string.          |
+| `timeFormat`                 | `string`  | `"YYYY-MM-DD HH:mm:ss"`  | Any valid Moment.js format token string. Empty string omits timestamps. |
 
 ## Default Settings
 
@@ -38,7 +38,7 @@ const DEFAULT_SETTINGS: TranscriptPluginSettings = {
   watchFolder: "Transcripts",
   autoConvertEnabled: false,
   deleteOriginalAfterConvert: false,
-  timeFormat: "HH:mm:ss DD:MM:YYYY"
+  timeFormat: "YYYY-MM-DD HH:mm:ss"
 };
 ```
 
