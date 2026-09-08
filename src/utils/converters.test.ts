@@ -34,15 +34,15 @@ Note: this is a note
 
     it('should return sorted unique names from txt format [Name] HH:mm:ss', () => {
         const input = `
-[Yulia Vovk] 20:30:11
+[Yujia Small] 20:30:11
 Hello everyone!
-[Ivan Batura] 20:30:25
+[Ivan Kan] 20:30:25
 Thanks.
-[Yulia Vovk] 21:15:40
+[Kate Kan] 21:15:40
 Bye!
 `;
         const result = extractParticipants(input, "txt");
-        expect(result).toEqual(["Ivan Batura", "Yulia Vovk"]);
+        expect(result).toEqual(["Ivan Kan", "Kate Kan", "Yujia Small"]);
     });
 
     it('should return empty array when no speakers found', () => {
@@ -95,10 +95,10 @@ Hi
 
 describe('convertTxtToMarkdown', () => {
     it('should prepend date to header lines', () => {
-        const input = '[Yulia Vovk] 20:30:11\nHello everyone.';
-        const result = convertTxtToMarkdown(input, "", 1700000000000); 
+        const input = '[Yujia Small] 20:30:11\nHello everyone.';
+        const result = convertTxtToMarkdown(input, "", 1700000000000);
         // 1700000000000 is intercepted by our mock above to return 2023-11-14
-        expect(result).toBe('[Yulia Vovk] 2023-11-14 20:30:11\nHello everyone.');
+        expect(result).toBe('[Yujia Small] 2023-11-14 20:30:11\nHello everyone.');
     });
 
     it('should ignore empty lines and return trimmed content', () => {
@@ -135,7 +135,7 @@ It has a second part
 Second cue block here
 `;
         const result = convertVttToMarkdown(input, "", 0);
-        
+
         expect(result).toBe('- Hello this is the first line It has a second part\n- Second cue block here');
     });
 
@@ -196,11 +196,11 @@ Teams caption line
 
 2eb325bb-1b35-4dac-b37b-c7a00c2a68d3/94-0
 00:01:12.760 --> 00:01:16.520
-<v Anton Bondarenko>Ladno, raz ty zapytala,
+<v Antonio Lano>Ladno, raz ty zapytala,
 korotshe.</v>
 `;
         expect(parseVttCues(input)).toEqual([
-            { offsetMs: 72760, speaker: "Anton Bondarenko", text: "Ladno, raz ty zapytala, korotshe." }
+            { offsetMs: 72760, speaker: "Antonio Lano", text: "Ladno, raz ty zapytala, korotshe." }
         ]);
     });
 
@@ -270,15 +270,15 @@ describe('convertTeamsVttToMarkdown', () => {
 
 guid/1-0
 00:00:01.000 --> 00:00:03.000
-<v Kateryna Tymofeieva>Hey!</v>
+<v Kate Kan>Hey!</v>
 
 guid/2-0
 00:00:04.000 --> 00:00:06.000
-<v Ivan Batura>Yeah, yeah, I was mute.</v>
+<v Antonio Lano>Yeah, yeah, I was mute.</v>
 `;
         expect(convertTeamsVttToMarkdown(input, fmt, base)).toBe(
-            `[Kateryna Tymofeieva] ${at(1000)}\nHey!\n` +
-            `[Ivan Batura] ${at(4000)}\nYeah, yeah, I was mute.`
+            `[Kate Kan] ${at(1000)}\nHey!\n` +
+            `[Antonio Lano] ${at(4000)}\nYeah, yeah, I was mute.`
         );
     });
 
@@ -287,26 +287,26 @@ guid/2-0
 
 guid/154-0
 00:00:10.000 --> 00:00:12.000
-<v Anton Bondarenko>One,</v>
+<v Antonio Lano>One,</v>
 
 guid/154-1
 00:00:12.000 --> 00:00:14.000
-<v Anton Bondarenko>two,</v>
+<v Antonio Lano>two,</v>
 
 guid/154-2
 00:00:14.000 --> 00:00:16.000
-<v Anton Bondarenko>three,</v>
+<v Antonio Lano>three,</v>
 
 guid/154-3
 00:00:16.000 --> 00:00:18.000
-<v Anton Bondarenko>four,</v>
+<v Antonio Lano>four,</v>
 
 guid/154-4
 00:00:18.000 --> 00:00:20.000
-<v Anton Bondarenko>five.</v>
+<v Antonio Lano>five.</v>
 `;
         expect(convertTeamsVttToMarkdown(input, fmt, base)).toBe(
-            `[Anton Bondarenko] ${at(10000)}\nOne, two, three, four, five.`
+            `[Antonio Lano] ${at(10000)}\nOne, two, three, four, five.`
         );
     });
 
@@ -314,18 +314,18 @@ guid/154-4
         const input = `WEBVTT
 
 00:00:01.000 --> 00:00:02.000
-<v Anton Bondarenko>Before.</v>
+<v Antonio Lano>Before.</v>
 
 00:00:02.000 --> 00:00:03.000
-<v Olesya Kots>Wait.</v>
+<v Kate Kan>Wait.</v>
 
 00:00:03.000 --> 00:00:04.000
-<v Anton Bondarenko>After.</v>
+<v Antonio Lano>After.</v>
 `;
         expect(convertTeamsVttToMarkdown(input, fmt, base)).toBe(
-            `[Anton Bondarenko] ${at(1000)}\nBefore.\n` +
-            `[Olesya Kots] ${at(2000)}\nWait.\n` +
-            `[Anton Bondarenko] ${at(3000)}\nAfter.`
+            `[Antonio Lano] ${at(1000)}\nBefore.\n` +
+            `[Kate Kan] ${at(2000)}\nWait.\n` +
+            `[Antonio Lano] ${at(3000)}\nAfter.`
         );
     });
 
@@ -333,14 +333,14 @@ guid/154-4
         const input = `WEBVTT
 
 00:00:00.000 --> 00:00:02.000
-<v Olesya Kots>Pryvit.</v>
+<v Olya Bezmeta>Pryvit.</v>
 `;
         // The obsidian mock only returns "2023-11-14 12:00:00" when the converter
         // asks for "YYYY-MM-DD HH:mm:ss", so this pins the format the converter uses.
         expect(convertTeamsVttToMarkdown(input, "HH:mm:ss DD:MM:YYYY", base))
-            .toBe('[Olesya Kots] 2023-11-14 12:00:00\nPryvit.');
+            .toBe('[Olya Bezmeta] 2023-11-14 12:00:00\nPryvit.');
         expect(convertTeamsVttToMarkdown(input, "", base))
-            .toBe('[Olesya Kots] 2023-11-14 12:00:00\nPryvit.');
+            .toBe('[Olya Bezmeta] 2023-11-14 12:00:00\nPryvit.');
     });
 
     it('emits text alone for a cue that names no speaker', () => {
@@ -350,10 +350,10 @@ guid/154-4
 Announcement without a speaker
 
 00:00:02.000 --> 00:00:03.000
-<v Olesya Kots>Pryvit.</v>
+<v Olya Bezmeta>Pryvit.</v>
 `;
         expect(convertTeamsVttToMarkdown(input, fmt, base)).toBe(
-            `Announcement without a speaker\n[Olesya Kots] ${at(2000)}\nPryvit.`
+            `Announcement without a speaker\n[Olya Bezmeta] ${at(2000)}\nPryvit.`
         );
     });
 });
@@ -364,25 +364,25 @@ describe('extractParticipants – voice-tagged vtt', () => {
 
 guid/10-0
 00:00:12.010 --> 00:00:12.690
-<v Ihor Petrovshchenko>Pryvit.</v>
+<v Ira Petrovna>Pryvit.</v>
 
 guid/14-0
 00:00:12.440 --> 00:00:14.080
-<v Olesya Kots>Pryvit, pryvit.</v>
+<v Olya Bezmeta>Pryvit, pryvit.</v>
 
 guid/20-0
 00:00:17.370 --> 00:00:18.610
-<v Ihor Petrovshchenko>Sohodni.</v>
+<v Ira Petrovna>Sohodni.</v>
 `;
-        expect(extractParticipants(input, "vtt")).toEqual(["Ihor Petrovshchenko", "Olesya Kots"]);
+        expect(extractParticipants(input, "vtt")).toEqual(["Ira Petrovna", "Olya Bezmeta"]);
     });
 
     it('does not read a colon inside cue text as a speaker', () => {
         const input = `WEBVTT
 
 00:00:01.000 --> 00:00:02.000
-<v Olesya Kots>Note to self: check the dashboard</v>
+<v Olya Bezmeta>Note to self: check the dashboard</v>
 `;
-        expect(extractParticipants(input, "vtt")).toEqual(["Olesya Kots"]);
+        expect(extractParticipants(input, "vtt")).toEqual(["Olya Bezmeta"]);
     });
 });

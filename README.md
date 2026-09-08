@@ -51,9 +51,9 @@ Every converted note starts with a title (`# {name}`) and YAML frontmatter conta
 **Microsoft Teams transcripts** are recognised automatically: they are WebVTT files whose cues name their speaker in a `<v Speaker>` voice tag. These convert speaker by speaker instead of as bullets, with consecutive lines from the same speaker joined into one turn:
 
 ```markdown
-[Kateryna Tymofeieva] 2026-07-31 19:31:06
+[Kate Kan] 2026-07-31 19:31:06
 Hey! One second, cannot hear you.
-[Ivan Batura] 2026-07-31 19:31:11
+[Ivan Kan] 2026-07-31 19:31:11
 Yeah, yeah, I was mute. Hey, hello.
 ```
 

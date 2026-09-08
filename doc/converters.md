@@ -38,7 +38,7 @@ Cleans a Zoom-style plain text transcript and dates its speaker headers.
 
 | Input                              | Output                                     |
 |------------------------------------|--------------------------------------------|
-| `[Yulia Vovk] 20:30:11\nHello.`   | `[Yulia Vovk] 2023-11-14 20:30:11\nHello.` |
+| `[Ivan Kan] 20:30:11\nHello.`   | `[Ivan Kan] 2023-11-14 20:30:11\nHello.` |
 
 ---
 
@@ -208,15 +208,15 @@ WEBVTT
 
 2eb325bb-1b35-4dac-b37b-c7a00c2a68d3/154-0
 00:00:12.010 --> 00:00:12.690
-<v Kateryna Tymofeieva>Hey!</v>
+<v Kate Kan>Hey!</v>
 
 2eb325bb-1b35-4dac-b37b-c7a00c2a68d3/154-1
 00:00:14.440 --> 00:00:16.080
-<v Kateryna Tymofeieva>One second,</v>
+<v Kate Kan>One second,</v>
 
 2eb325bb-1b35-4dac-b37b-c7a00c2a68d3/158-0
 00:00:17.370 --> 00:00:18.610
-<v Ivan Batura>Yeah, I was mute.</v>
+<v Ivan Kan>Yeah, I was mute.</v>
 ```
 
 ### Output Example
@@ -224,9 +224,9 @@ WEBVTT
 With a meeting starting `2026-07-31 19:31:00`:
 
 ```markdown
-[Kateryna Tymofeieva] 2026-07-31 19:31:12
+[Kate Kan] 2026-07-31 19:31:12
 Hey! One second,
-[Ivan Batura] 2026-07-31 19:31:17
+[Ivan Kan] 2026-07-31 19:31:17
 Yeah, I was mute.
 ```
 
