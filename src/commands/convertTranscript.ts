@@ -1,7 +1,7 @@
 import { Notice, TFile, TFolder, normalizePath } from "obsidian";
 import TranscriptToMdPlugin from "../main";
 
-import { convertTxtToMarkdown, convertVttToMarkdown, extractDuration, extractParticipants } from "../utils/converters";
+import { convertTeamsVttToMarkdown, convertTxtToMarkdown, convertVttToMarkdown, detectVttDialect, extractDuration, extractParticipants } from "../utils/converters";
 import { typedMoment, MomentLike } from "../utils/momentTyped";
 
 /**
@@ -83,8 +83,12 @@ export async function convertTranscript(file: TFile, plugin: TranscriptToMdPlugi
 
 		if (file.extension === 'txt') {
 			mdContent = convertTxtToMarkdown(content, timeFormat, fileCreationTime);
-		} else if (file.extension === 'vtt') {
-			mdContent = convertVttToMarkdown(content, timeFormat, fileCreationTime);
+		} else if (file.extension === "vtt") {
+			// Teams transcripts name their speakers in voice tags and read best in the
+			// same speaker-per-turn layout as Zoom TXT; other VTT stays bulleted.
+			mdContent = detectVttDialect(content) === "speaker"
+				? convertTeamsVttToMarkdown(content, timeFormat, fileCreationTime)
+				: convertVttToMarkdown(content, timeFormat, fileCreationTime);
 		}
 
 		// Build frontmatter

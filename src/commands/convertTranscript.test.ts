@@ -377,3 +377,71 @@ describe('convertTranscript date source priority', () => {
         expect(createArgs[1]).not.toContain('date: 2023-11-14');
     });
 });
+
+describe('convertTranscript vtt dialect routing', () => {
+    let mockVault: any;
+    let mockPlugin: any;
+
+    beforeEach(() => {
+        mockVault = {
+            read: vi.fn(),
+            getAbstractFileByPath: vi.fn(),
+            createFolder: vi.fn(),
+            modify: vi.fn(),
+            create: vi.fn()
+        };
+        mockPlugin = {
+            app: { vault: mockVault, workspace: { getActiveFile: vi.fn() } },
+            addCommand: vi.fn(),
+            settings: { timeFormat: 'YYYY-MM-DD HH:mm:ss', outputFolder: 'Transcripts' }
+        };
+        mockVault.getAbstractFileByPath.mockReturnValueOnce(new TFolder()); // output folder
+        mockVault.getAbstractFileByPath.mockReturnValueOnce(null);          // target file
+    });
+
+    it('converts a voice-tagged (Teams) vtt into speaker lines with participants', async () => {
+        const mockFile = {
+            extension: 'vtt',
+            basename: '2026-07-31_valuation',
+            stat: { ctime: 1700000000000 }
+        };
+        mockVault.read.mockResolvedValue(`WEBVTT
+
+2eb325bb-1b35-4dac-b37b-c7a00c2a68d3/10-0
+00:00:01.000 --> 00:00:03.000
+<v Kateryna Tymofeieva>Hey!</v>
+
+2eb325bb-1b35-4dac-b37b-c7a00c2a68d3/14-0
+00:00:04.000 --> 00:00:06.000
+<v Ivan Batura>Yeah, I was mute.</v>
+`);
+
+        await convertTranscript(mockFile as any, mockPlugin, false);
+
+        const content = mockVault.create.mock.calls[0][1];
+        expect(content).toContain('participants:\n  - "Ivan Batura"\n  - "Kateryna Tymofeieva"');
+        expect(content).toContain('[Kateryna Tymofeieva] 2026-07-31 00:00:01\nHey!');
+        expect(content).toContain('[Ivan Batura] 2026-07-31 00:00:04\nYeah, I was mute.');
+        expect(content).not.toContain('2eb325bb');
+        expect(content).not.toContain('<v ');
+    });
+
+    it('keeps bulleted output for a vtt without voice tags', async () => {
+        const mockFile = {
+            extension: 'vtt',
+            basename: '2026-07-31_standup',
+            stat: { ctime: 1700000000000 }
+        };
+        mockVault.read.mockResolvedValue(`WEBVTT
+
+1
+00:00:01.000 --> 00:00:03.000
+Alice: Hello there
+`);
+
+        await convertTranscript(mockFile as any, mockPlugin, false);
+
+        const content = mockVault.create.mock.calls[0][1];
+        expect(content).toContain('- **[2026-07-31 00:00:01]** Alice: Hello there');
+    });
+});

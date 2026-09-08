@@ -58,7 +58,7 @@ export class TranscriptSettingTab extends PluginSettingTab {
 
 		new Setting(containerEl)
 			.setName("Time format")
-			.setDesc("Timestamp format for dialog lines (moment.js). Default: YYYY-MM-DD HH:mm:ss")
+			.setDesc("Timestamp format for bulleted caption lines (moment.js). Default: YYYY-MM-DD HH:mm:ss. Speaker lines from Teams and Zoom transcripts always use YYYY-MM-DD HH:mm:ss.")
 			.addText(text => text
 				.setPlaceholder("YYYY-MM-DD HH:mm:ss")
 				.setValue(this.plugin.settings.timeFormat)
