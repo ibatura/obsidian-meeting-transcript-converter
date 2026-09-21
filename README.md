@@ -12,6 +12,7 @@ This plugin is desktop-only and does not send data anywhere — all conversion h
 - **Microsoft Teams transcripts** — Teams exports are detected automatically and converted speaker by speaker, with cue identifiers and voice tags removed.
 - **Frontmatter generation** — output notes get YAML frontmatter with `meeting_name`, `date`, and, when detectable, `duration` and `participants`.
 - **Optional cleanup** — delete the original transcript file automatically once it's been converted.
+- **Consistent note names** — every note is named from the meeting's date and name, in the order and date format you choose, whatever the meeting platform called its export.
 
 ## Usage
 
@@ -59,6 +60,20 @@ Yeah, yeah, I was mute. Hey, hello.
 
 Speakers found this way are also listed in the note's `participants` property. Detection looks only at the file's contents, so it works no matter how the export was named. Speaker lines always use `YYYY-MM-DD HH:mm:ss` so Teams and Zoom notes read the same; the **Time format** setting applies to the bulleted output above.
 
+## Note names
+
+A converted note is named from two things the plugin works out for itself: the meeting's date — taken from a date in the transcript's file name, or the file's creation time when it has none — and the meeting's name, with any leading date stripped, underscores turned into spaces and words capitalised. Transcripts that name no meeting, such as Zoom's `meeting_saved_closed_caption`, become `Untitled Meeting`.
+
+| Transcript | Note (date first) | Note (name first) |
+|---|---|---|
+| `2026-04-05_sprint_planning.txt` | `2026-04-05 Sprint Planning.md` | `Sprint Planning 2026-04-05.md` |
+| `Weekly_Sync.vtt` (Teams) | `2026-09-08 Weekly Sync.md` | `Weekly Sync 2026-09-08.md` |
+| `meeting_saved_closed_caption.txt` | `2026-04-05 Untitled Meeting.md` | `Untitled Meeting 2026-04-05.md` |
+
+Every note records the transcript it came from in a `source` property. Converting the same transcript again updates that note in place. If a *different* meeting would land on the same name, its note gets the meeting's time appended — `2026-04-05 Untitled Meeting 16-05-00.md` — rather than replacing what's already there. Notes with no `source` property, including ones you wrote yourself, are never overwritten.
+
+Notes converted by earlier versions keep their old names; the next conversion creates a new note alongside them.
+
 ## Settings
 
 | Setting | Description | Default |
@@ -67,6 +82,8 @@ Speakers found this way are also listed in the note's `participants` property. D
 | Watch folder | Vault folder monitored for new transcripts when auto-convert is on. Empty watches the entire vault. | `Transcripts` |
 | Auto-convert new transcripts | Automatically convert new `.txt`/`.vtt` files as they're created. | Off |
 | Delete original file after convert | Remove the source file after a successful conversion. | Off |
+| Note name order | Whether the note's name starts with the meeting date or the meeting name. | Date, then meeting name |
+| Note name date format | [Moment.js](https://momentjs.com/docs/#/displaying/format/) format string for the date in the note's name. Leave empty to name notes by meeting name alone. | `YYYY-MM-DD` |
 | Time format | [Moment.js](https://momentjs.com/docs/#/displaying/format/) format string used for bulleted VTT cue timestamps. Leave empty to omit them. Speaker lines (Teams, Zoom) always use `YYYY-MM-DD HH:mm:ss`. | `YYYY-MM-DD HH:mm:ss` |
 
 ## Installing

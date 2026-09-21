@@ -52,7 +52,33 @@ The value is trimmed on change. An empty value means the entire vault is watched
 | Description | "Remove the source .txt/.vtt file after the .md file is created" |
 | Binding     | `settings.deleteOriginalAfterConvert`                          |
 
-### 5. Time Format
+### 5. Note Name Order
+
+| Property    | Value                                                          |
+|-------------|----------------------------------------------------------------|
+| Type        | Dropdown                                                       |
+| Label       | "Note name order"                                              |
+| Description | "Whether the converted note's name starts with the meeting date or the meeting name" |
+| Options     | `date-first` → "Date, then meeting name"; `name-first` → "Meeting name, then date" |
+| Binding     | `settings.fileNameOrder`                                       |
+
+Decides which of the two parts leads the note's file name. Defaults to `date-first`.
+
+### 6. Note Name Date Format
+
+| Property    | Value                                                          |
+|-------------|----------------------------------------------------------------|
+| Type        | Text input                                                     |
+| Label       | "Note name date format"                                        |
+| Description | "Date format used in the note's name (moment.js). Leave empty to name notes by meeting name alone. Default: YYYY-MM-DD" |
+| Placeholder | `YYYY-MM-DD`                                                   |
+| Binding     | `settings.fileNameDateFormat`                                  |
+
+Accepts any Moment.js format string; `DD.MM.YYYY` and `YYYY-MM-DD HH-mm` both work. An empty value drops the date from the name entirely. Characters that cannot appear in a file name (`/ \ : * ? " < > |`) are replaced with a hyphen after formatting, so `YYYY/MM/DD` yields `2026-04-05` rather than a folder path.
+
+This setting governs only the note's file name. Timestamps inside the note are governed by "Time format" below.
+
+### 7. Time Format
 
 | Property    | Value                                                          |
 |-------------|----------------------------------------------------------------|

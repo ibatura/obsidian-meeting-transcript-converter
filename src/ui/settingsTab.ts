@@ -1,5 +1,6 @@
 import { App, PluginSettingTab, Setting } from "obsidian";
 import TranscriptToMdPlugin from "../main";
+import { FileNameOrder } from "../types";
 
 export class TranscriptSettingTab extends PluginSettingTab {
 	plugin: TranscriptToMdPlugin;
@@ -53,6 +54,29 @@ export class TranscriptSettingTab extends PluginSettingTab {
 				.setValue(this.plugin.settings.deleteOriginalAfterConvert)
 				.onChange(async (value) => {
 					this.plugin.settings.deleteOriginalAfterConvert = value;
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
+			.setName("Note name order")
+			.setDesc("Whether the converted note's name starts with the meeting date or the meeting name")
+			.addDropdown(dropdown => dropdown
+				.addOption("date-first", "Date, then meeting name")
+				.addOption("name-first", "Meeting name, then date")
+				.setValue(this.plugin.settings.fileNameOrder)
+				.onChange(async (value) => {
+					this.plugin.settings.fileNameOrder = value as FileNameOrder;
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
+			.setName("Note name date format")
+			.setDesc("Date format used in the note's name (moment.js). Leave empty to name notes by meeting name alone. Default: YYYY-MM-DD")
+			.addText(text => text
+				.setPlaceholder("YYYY-MM-DD")
+				.setValue(this.plugin.settings.fileNameDateFormat)
+				.onChange(async (value) => {
+					this.plugin.settings.fileNameDateFormat = value;
 					await this.plugin.saveSettings();
 				}));
 

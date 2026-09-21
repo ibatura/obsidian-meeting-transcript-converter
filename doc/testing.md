@@ -55,7 +55,7 @@ The following areas currently lack test coverage and should be addressed for spe
 
 2. **`parseVttTimeOffset`** — this internal function handles two VTT time formats (`HH:MM:SS.mmm` and `MM:SS.mmm`). It should have dedicated unit tests for edge cases: zero times, max values, boundary between formats.
 
-3. **Title generation** — the title is generated in `convertTranscript.ts` by replacing underscores with spaces. This logic should be tested with various filenames: spaces, special characters, multiple underscores.
+3. **Note naming** — `deriveMeetingName` and `buildNoteFileName` in `convertTranscript.ts` turn a transcript's basename into the note's heading and file name. Both are covered in `convertTranscript.test.ts`, including both orders, custom and empty date formats, and characters illegal in file names. Collision handling (the `source` property) is covered at the `convertTranscript` level.
 
 ### Medium Priority
 

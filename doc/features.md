@@ -23,10 +23,10 @@ Command Palette → "Convert transcript file (txt/vtt) to Markdown"
    - `.txt` → `convertTxtToMarkdown(content, timeFormat, fileCreationTime)`
    - `.vtt` naming its speakers in voice tags → `convertTeamsVttToMarkdown(content, timeFormat, fileCreationTime)`
    - any other `.vtt` → `convertVttToMarkdown(content, timeFormat, fileCreationTime)`
-3. Generate a title from the file's basename (underscores replaced with spaces), prepended as `# {title}`.
+3. Derive the meeting name from the file's basename (leading date stripped, underscores replaced with spaces, words capitalised), falling back to `Untitled Meeting`, and prepend it as `# {meetingName}` below a properties block that records `meeting_name`, `date`, `source` and, when available, `duration` and `participants`.
 4. Resolve `outputFolder` path. Create the folder if it does not exist.
-5. Build target path: `{outputFolder}/{basename}.md`.
-6. If a file already exists at that path, overwrite its content. Otherwise, create a new file.
+5. Build the note's name from the meeting date and the meeting name, joined by a space in the order `fileNameOrder` sets, with the date formatted by `fileNameDateFormat`. Replace characters that cannot appear in a file name with a hyphen. Target path: `{outputFolder}/{noteName}.md`.
+6. If a note already exists at that path and its `source` property names this same transcript, overwrite it. If it names a different transcript, is missing, or the note cannot be read, append the meeting's time (`HH-mm-ss`) to the name and write there instead. Otherwise create a new file.
 7. Show a `Notice` indicating success (`Created {path}` or `Updated {path}`).
 
 ### Error Handling
@@ -37,6 +37,9 @@ Command Palette → "Convert transcript file (txt/vtt) to Markdown"
 ### Acceptance Criteria
 
 - [ ] Command only visible when a `.txt` or `.vtt` file is active.
+- [ ] Notes are named from the meeting date and meeting name, in the configured order and date format, identically for Zoom TXT, generic VTT and Teams VTT.
+- [ ] Converting the same transcript twice updates one note rather than creating a second.
+- [ ] A note belonging to a different meeting, or carrying no `source` property, is never overwritten.
 - [ ] TXT files produce trimmed, cleaned Markdown output.
 - [ ] VTT files produce bulleted Markdown with optional timestamps.
 - [ ] Output file is created in the configured `outputFolder`.

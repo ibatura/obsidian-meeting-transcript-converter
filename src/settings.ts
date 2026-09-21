@@ -5,5 +5,7 @@ export const DEFAULT_SETTINGS: TranscriptPluginSettings = {
 	watchFolder: "Transcripts",
 	autoConvertEnabled: false,
 	deleteOriginalAfterConvert: false,
-	timeFormat: "YYYY-MM-DD HH:mm:ss"
+	timeFormat: "YYYY-MM-DD HH:mm:ss",
+	fileNameOrder: "date-first",
+	fileNameDateFormat: "YYYY-MM-DD"
 };
