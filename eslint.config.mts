@@ -37,7 +37,8 @@ export default tseslint.config(
 		},
 	},
 	{
-		// The time-format setting displays moment.js format tokens (e.g. "YYYY-MM-DD HH:mm:ss")
+		// The time-format and note-name settings display moment.js format tokens
+		// (e.g. "YYYY-MM-DD HH:mm:ss", "YYYY-MM-DD")
 		// verbatim in its description/placeholder. These are case-sensitive syntax, not prose,
 		// so exempt them from sentence-case via the rule's own ignoreRegex option rather than
 		// suppressing the rule with an inline eslint-disable comment.
@@ -47,7 +48,7 @@ export default tseslint.config(
 				'error',
 				{
 					enforceCamelCaseLower: true,
-					ignoreRegex: ['YYYY-MM-DD HH:mm:ss'],
+					ignoreRegex: ['YYYY-MM-DD( HH:mm:ss)?'],
 				},
 			],
 		},

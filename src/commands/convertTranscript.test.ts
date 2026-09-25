@@ -1,5 +1,19 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
+// Shared by the moment stub and by tests that need to state an expected
+// timestamp, so expectations never depend on the machine's timezone.
+const { formatAt } = vi.hoisted(() => {
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const formatAt = (d: Date, fmt: string): string => fmt
+        .replace(/YYYY/g, String(d.getFullYear()))
+        .replace(/MM/g, pad(d.getMonth() + 1))
+        .replace(/DD/g, pad(d.getDate()))
+        .replace(/HH/g, pad(d.getHours()))
+        .replace(/mm/g, pad(d.getMinutes()))
+        .replace(/ss/g, pad(d.getSeconds()));
+    return { formatAt };
+});
+
 vi.mock('obsidian', () => {
     class MockTFolder { }
     class MockTFile { }
@@ -15,34 +29,13 @@ vi.mock('obsidian', () => {
                 return {
                     isValid: () => !isNaN(d.getTime()),
                     valueOf: () => d.getTime(),
-                    format: (fmt: string) => {
-                        const y = d.getFullYear();
-                        const m = String(d.getMonth() + 1).padStart(2, '0');
-                        const dd = String(d.getDate()).padStart(2, '0');
-                        if (fmt === "YYYY-MM-DD") return `${y}-${m}-${dd}`;
-                        return `${y}-${m}-${dd} mocked-time`;
-                    }
+                    format: (fmt: string) => formatAt(d, fmt)
                 };
             }
-            // Called with epoch ms: moment(number)
-            // Note: real moment() interprets epoch ms in local time. Our mock
-            // must behave the same way as the object-form mock above (which uses
-            // new Date(y,m,d,...) — i.e. local time). So we use local getters.
+            // Called with epoch ms: moment(number). Real moment() interprets
+            // epoch ms in local time, so the local getters in formatAt match.
             if (typeof val === 'number') {
-                const d = new Date(val);
-                return {
-                    format: (fmt: string) => {
-                        const y = d.getFullYear();
-                        const mo = String(d.getMonth() + 1).padStart(2, '0');
-                        const dd = String(d.getDate()).padStart(2, '0');
-                        const hh = String(d.getHours()).padStart(2, '0');
-                        const mm = String(d.getMinutes()).padStart(2, '0');
-                        const ss = String(d.getSeconds()).padStart(2, '0');
-                        if (fmt === "YYYY-MM-DD") return `${y}-${mo}-${dd}`;
-                        if (fmt === "YYYY-MM-DD HH:mm:ss") return `${y}-${mo}-${dd} ${hh}:${mm}:${ss}`;
-                        return 'mocked-time';
-                    }
-                };
+                return { format: (fmt: string) => formatAt(new Date(val), fmt) };
             }
             return {
                 format: () => 'mocked-time'
@@ -51,7 +44,7 @@ vi.mock('obsidian', () => {
     };
 });
 
-import { convertTranscript, registerConvertCommand, deriveMeetingName, extractDateFromBasename } from './convertTranscript';
+import { convertTranscript, registerConvertCommand, deriveMeetingName, extractDateFromBasename, buildNoteFileName } from './convertTranscript';
 import { TFolder, TFile } from 'obsidian';
 
 describe('convertTranscript', () => {
@@ -83,7 +76,9 @@ describe('convertTranscript', () => {
             addCommand: vi.fn(),
             settings: {
                 timeFormat: 'HH:mm:ss',
-                outputFolder: 'Transcripts'
+                outputFolder: 'Transcripts',
+                fileNameOrder: 'date-first',
+                fileNameDateFormat: 'YYYY-MM-DD'
             }
         };
     });
@@ -108,6 +103,7 @@ describe('convertTranscript', () => {
         const mockFile = {
             extension: 'txt',
             basename: '2026-04-05_meeting',
+            path: 'Inbox/2026-04-05_meeting.txt',
             stat: { ctime: 1700000000000 }
         };
         mockVault.read.mockResolvedValue('[Alice] 12:00:00\nHello');
@@ -124,42 +120,112 @@ describe('convertTranscript', () => {
         expect(mockVault.createFolder).toHaveBeenCalledWith('Transcripts');
         expect(mockVault.create).toHaveBeenCalled();
         const createArgs = mockVault.create.mock.calls[0];
-        expect(createArgs[0]).toBe('Transcripts/2026-04-05_meeting.md');
+        expect(createArgs[0]).toBe('Transcripts/2026-04-05 Meeting.md');
+        expect(createArgs[1]).toContain('source: "Inbox/2026-04-05_meeting.txt"');
         expect(createArgs[1]).toContain('meeting_name: "Meeting"');
         expect(createArgs[1]).toContain('date: 2026-04-05');
         expect(createArgs[1]).toContain('# Meeting');
         expect(createArgs[1]).toContain('[Alice] 2026-04-05 12:00:00');
     });
 
-    it('modifies existing file if target exists', async () => {
+    it('overwrites the note it wrote before when the same transcript is converted again', async () => {
         const mockFile = {
-            extension: 'vtt',
-            basename: 'meeting_saved_closed_caption',
+            extension: 'txt',
+            basename: '2026-04-05_standup',
+            path: 'Inbox/2026-04-05_standup.txt',
             stat: { ctime: 1700000000000 }
         };
-        mockVault.read.mockResolvedValue('WEBVTT\n\n00:00.000 --> 00:05.000\nHello');
-
-        const folderInstance = new TFolder();
-        const fileInstance = new TFile();
-
+        const existingNote = new TFile();
+        mockVault.read.mockImplementation((f: any) => Promise.resolve(
+            f === mockFile
+                ? '[Alice] 12:00:00\nHello'
+                : '---\nmeeting_name: "Standup"\ndate: 2026-04-05\nsource: "Inbox/2026-04-05_standup.txt"\n---\n\n# Standup\n'
+        ));
         mockVault.getAbstractFileByPath.mockImplementation((path: string) => {
-            if (path === 'Transcripts') return folderInstance;
-            if (path === 'Transcripts/Untitled Meeting mocked-time.md') return fileInstance;
+            if (path === 'Transcripts') return new TFolder();
+            if (path === 'Transcripts/2026-04-05 Standup.md') return existingNote;
             return null;
         });
 
         await convertTranscript(mockFile as any, mockPlugin, false);
 
-        expect(mockVault.modify).toHaveBeenCalled();
-        const modifyArgs = mockVault.modify.mock.calls[0];
-        expect(modifyArgs[0]).toBe(fileInstance);
-        expect(modifyArgs[1]).toContain('meeting_name: "Untitled Meeting mocked-time"');
+        expect(mockVault.create).not.toHaveBeenCalled();
+        expect(mockVault.modify.mock.calls[0][0]).toBe(existingNote);
+    });
+
+    it('writes a separate note when the name is taken by a different transcript', async () => {
+        const mockFile = {
+            extension: 'txt',
+            basename: '2026-04-05_standup',
+            path: 'Inbox/2026-04-05_standup.txt',
+            stat: { ctime: 1700000000000 }
+        };
+        mockVault.read.mockImplementation((f: any) => Promise.resolve(
+            f === mockFile
+                ? '[Alice] 12:00:00\nHello'
+                : '---\nmeeting_name: "Standup"\ndate: 2026-04-05\nsource: "Inbox/another_standup.txt"\n---\n\n# Standup\n'
+        ));
+        mockVault.getAbstractFileByPath.mockImplementation((path: string) => {
+            if (path === 'Transcripts') return new TFolder();
+            if (path === 'Transcripts/2026-04-05 Standup.md') return new TFile();
+            return null;
+        });
+
+        await convertTranscript(mockFile as any, mockPlugin, false);
+
+        expect(mockVault.modify).not.toHaveBeenCalled();
+        expect(mockVault.create.mock.calls[0][0]).toBe('Transcripts/2026-04-05 Standup 00-00-00.md');
+    });
+
+    it('leaves a note that carries no source property alone', async () => {
+        const mockFile = {
+            extension: 'txt',
+            basename: '2026-04-05_standup',
+            path: 'Inbox/2026-04-05_standup.txt',
+            stat: { ctime: 1700000000000 }
+        };
+        mockVault.read.mockImplementation((f: any) => Promise.resolve(
+            f === mockFile ? '[Alice] 12:00:00\nHello' : '# Notes I wrote by hand\n'
+        ));
+        mockVault.getAbstractFileByPath.mockImplementation((path: string) => {
+            if (path === 'Transcripts') return new TFolder();
+            if (path === 'Transcripts/2026-04-05 Standup.md') return new TFile();
+            return null;
+        });
+
+        await convertTranscript(mockFile as any, mockPlugin, false);
+
+        expect(mockVault.modify).not.toHaveBeenCalled();
+        expect(mockVault.create.mock.calls[0][0]).toBe('Transcripts/2026-04-05 Standup 00-00-00.md');
+    });
+
+    it('names an untitled meeting without a timestamp', async () => {
+        const ctime = 1700000000000;
+        const mockFile = {
+            extension: 'vtt',
+            basename: 'meeting_saved_closed_caption',
+            path: 'Inbox/meeting_saved_closed_caption.vtt',
+            stat: { ctime }
+        };
+        mockVault.read.mockResolvedValue('WEBVTT\n\n00:00.000 --> 00:05.000\nHello');
+        mockVault.getAbstractFileByPath.mockImplementation((path: string) =>
+            path === 'Transcripts' ? new TFolder() : null
+        );
+
+        await convertTranscript(mockFile as any, mockPlugin, false);
+
+        const expectedDate = formatAt(new Date(ctime), 'YYYY-MM-DD');
+        const createArgs = mockVault.create.mock.calls[0];
+        expect(createArgs[0]).toBe(`Transcripts/${expectedDate} Untitled Meeting.md`);
+        expect(createArgs[1]).toContain('meeting_name: "Untitled Meeting"\n');
+        expect(createArgs[1]).toContain('# Untitled Meeting\n');
     });
 
     it('shows notice if output path exists but is not a folder', async () => {
         const mockFile = {
             extension: 'txt',
             basename: 'test',
+            path: 'Inbox/test.txt',
             stat: { ctime: 1700000000000 }
         };
         mockVault.read.mockResolvedValue('Test');
@@ -178,6 +244,7 @@ describe('convertTranscript', () => {
         const mockFile = {
             extension: 'txt',
             basename: 'test',
+            path: 'Inbox/test.txt',
             stat: { ctime: 1700000000000 }
         };
         mockVault.read.mockRejectedValue(new Error('Read failed'));
@@ -328,7 +395,7 @@ describe('convertTranscript date source priority', () => {
         mockPlugin = {
             app: mockApp,
             addCommand: vi.fn(),
-            settings: { timeFormat: 'HH:mm:ss', outputFolder: 'Transcripts' }
+            settings: { timeFormat: 'HH:mm:ss', outputFolder: 'Transcripts', fileNameOrder: 'date-first', fileNameDateFormat: 'YYYY-MM-DD' }
         };
     });
 
@@ -337,6 +404,7 @@ describe('convertTranscript date source priority', () => {
         const mockFile = {
             extension: 'txt',
             basename: 'weekly_sync',
+            path: 'Inbox/weekly_sync.txt',
             stat: { ctime }
         };
         mockVault.read.mockResolvedValue('[Alice] 12:00:00\nHello');
@@ -360,6 +428,7 @@ describe('convertTranscript date source priority', () => {
         const mockFile = {
             extension: 'txt',
             basename: '2025-01-15_standup',
+            path: 'Inbox/2025-01-15_standup.txt',
             stat: { ctime: 1700000000000 }  // 2023-11-14 — should be ignored
         };
         mockVault.read.mockResolvedValue('[Bob] 09:00:00\nGood morning');
@@ -393,7 +462,7 @@ describe('convertTranscript vtt dialect routing', () => {
         mockPlugin = {
             app: { vault: mockVault, workspace: { getActiveFile: vi.fn() } },
             addCommand: vi.fn(),
-            settings: { timeFormat: 'YYYY-MM-DD HH:mm:ss', outputFolder: 'Transcripts' }
+            settings: { timeFormat: 'YYYY-MM-DD HH:mm:ss', outputFolder: 'Transcripts', fileNameOrder: 'date-first', fileNameDateFormat: 'YYYY-MM-DD' }
         };
         mockVault.getAbstractFileByPath.mockReturnValueOnce(new TFolder()); // output folder
         mockVault.getAbstractFileByPath.mockReturnValueOnce(null);          // target file
@@ -403,6 +472,7 @@ describe('convertTranscript vtt dialect routing', () => {
         const mockFile = {
             extension: 'vtt',
             basename: '2026-07-31_valuation',
+            path: 'Inbox/2026-07-31_valuation.vtt',
             stat: { ctime: 1700000000000 }
         };
         mockVault.read.mockResolvedValue(`WEBVTT
@@ -430,6 +500,7 @@ describe('convertTranscript vtt dialect routing', () => {
         const mockFile = {
             extension: 'vtt',
             basename: '2026-07-31_standup',
+            path: 'Inbox/2026-07-31_standup.vtt',
             stat: { ctime: 1700000000000 }
         };
         mockVault.read.mockResolvedValue(`WEBVTT
@@ -443,5 +514,43 @@ Alice: Hello there
 
         const content = mockVault.create.mock.calls[0][1];
         expect(content).toContain('- **[2026-07-31 00:00:01]** Alice: Hello there');
+    });
+});
+
+describe('buildNoteFileName', () => {
+    // 2026-04-05 16:05:00 local time, built from components so the expected
+    // strings below hold in any timezone.
+    const meetingTime = new Date(2026, 3, 5, 16, 5, 0).getTime();
+
+    it('puts the date before the meeting name by default', () => {
+        expect(buildNoteFileName('Sprint Planning', meetingTime, 'date-first', 'YYYY-MM-DD'))
+            .toBe('2026-04-05 Sprint Planning');
+    });
+
+    it('puts the meeting name before the date when configured', () => {
+        expect(buildNoteFileName('Sprint Planning', meetingTime, 'name-first', 'YYYY-MM-DD'))
+            .toBe('Sprint Planning 2026-04-05');
+    });
+
+    it('formats the date with the configured format', () => {
+        expect(buildNoteFileName('Sprint Planning', meetingTime, 'date-first', 'DD.MM.YYYY'))
+            .toBe('05.04.2026 Sprint Planning');
+    });
+
+    it('returns the meeting name alone when the date format is empty', () => {
+        expect(buildNoteFileName('Sprint Planning', meetingTime, 'date-first', ''))
+            .toBe('Sprint Planning');
+        expect(buildNoteFileName('Sprint Planning', meetingTime, 'name-first', '   '))
+            .toBe('Sprint Planning');
+    });
+
+    it('replaces path separators produced by the date format', () => {
+        expect(buildNoteFileName('Sprint Planning', meetingTime, 'date-first', 'YYYY/MM/DD'))
+            .toBe('2026-04-05 Sprint Planning');
+    });
+
+    it('replaces every character that cannot appear in a file name', () => {
+        expect(buildNoteFileName('a/b\\c:d*e?f"g<h>i|j', meetingTime, 'date-first', ''))
+            .toBe('a-b-c-d-e-f-g-h-i-j');
     });
 });

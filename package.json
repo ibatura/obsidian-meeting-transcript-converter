@@ -1,7 +1,7 @@
 {
 	"name": "meeting-transcript-converter",
-	"version": "1.0.0",
-	"description": "This is a sample plugin for Obsidian (https://obsidian.md)",
+	"version": "1.0.2",
+	"description": "Convert .txt or .vtt meeting transcript files into cleaned .md notes.",
 	"main": "main.js",
 	"type": "module",
 	"scripts": {

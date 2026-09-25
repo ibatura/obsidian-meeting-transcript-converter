@@ -1,5 +1,6 @@
 import { Notice, TFile, TFolder, normalizePath } from "obsidian";
 import TranscriptToMdPlugin from "../main";
+import { FileNameOrder } from "../types";
 
 import { convertTeamsVttToMarkdown, convertTxtToMarkdown, convertVttToMarkdown, detectVttDialect, extractDuration, extractParticipants } from "../utils/converters";
 import { typedMoment, MomentLike } from "../utils/momentTyped";
@@ -56,6 +57,29 @@ export function deriveMeetingName(basename: string): string {
 		.replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
+/**
+ * Composes the note's file name from the meeting name and the meeting's date,
+ * in the order the user configured. Returns a base name, without extension.
+ *
+ * An empty date format yields the meeting name on its own. Characters that
+ * cannot appear in a file name are replaced with a hyphen, so a date format
+ * such as `YYYY/MM/DD` produces a name rather than a folder path.
+ */
+export function buildNoteFileName(
+	meetingName: string,
+	meetingTime: number,
+	order: FileNameOrder,
+	dateFormat: string
+): string {
+	const trimmedFormat = dateFormat.trim();
+	const datePart = trimmedFormat ? typedMoment(meetingTime).format(trimmedFormat) : "";
+
+	const parts = order === "name-first" ? [meetingName, datePart] : [datePart, meetingName];
+	const name = parts.filter((part) => part !== "").join(" ");
+
+	return name.replace(/[/\\:*?"<>|]/g, "-").trim();
+}
+
 export function registerConvertCommand(plugin: TranscriptToMdPlugin) {
 	plugin.addCommand({
 		id: "convert-transcript-file",
@@ -71,6 +95,29 @@ export function registerConvertCommand(plugin: TranscriptToMdPlugin) {
 			return false;
 		}
 	});
+}
+
+/**
+ * Whether an existing note was converted from this transcript, judged by the
+ * `source` property the plugin writes. A note that cannot be read, or that
+ * carries no `source`, counts as someone else's — the safe answer, since it
+ * leads to writing a new note rather than replacing one.
+ */
+async function noteCameFrom(
+	plugin: TranscriptToMdPlugin,
+	note: TFile,
+	sourcePath: string
+): Promise<boolean> {
+	try {
+		const content = await plugin.app.vault.read(note);
+		const frontmatter = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+		if (!frontmatter) return false;
+
+		const source = frontmatter[1]!.match(/^source:\s*"(.*)"\s*$/m);
+		return source?.[1] === sourcePath;
+	} catch {
+		return false;
+	}
 }
 
 export async function convertTranscript(file: TFile, plugin: TranscriptToMdPlugin, showNotice: boolean = true) {
@@ -93,14 +140,12 @@ export async function convertTranscript(file: TFile, plugin: TranscriptToMdPlugi
 
 		// Build frontmatter
 		const format = file.extension === "vtt" ? "vtt" : "txt";
-		let meetingName = deriveMeetingName(file.basename);
-		if (meetingName === "Untitled Meeting") {
-			const timestamp: string = typedMoment(fileCreationTime).format("YYYY-MM-DD_HH-mm-ss");
-			meetingName = `Untitled Meeting ${timestamp}`;
-		}
+		const meetingName = deriveMeetingName(file.basename);
 		const dateStr: string = typedMoment(fileCreationTime).format("YYYY-MM-DD");
 
-		let frontmatter = `---\nmeeting_name: "${meetingName}"\ndate: ${dateStr}\n`;
+		// `source` is the note's identity: it tells a later conversion which
+		// transcript this note came from.
+		let frontmatter = `---\nmeeting_name: "${meetingName}"\ndate: ${dateStr}\nsource: "${file.path}"\n`;
 
 		const duration = extractDuration(content, format);
 		if (duration) {
@@ -133,11 +178,25 @@ export async function convertTranscript(file: TFile, plugin: TranscriptToMdPlugi
 			return;
 		}
 
-		// Use timestamped meeting name as filename for untitled meetings to avoid collisions
-		const outputBaseName = meetingName.startsWith("Untitled Meeting") ? meetingName : file.basename;
-		const newFilePath = normalizePath(`${folderPath}/${outputBaseName}.md`);
+		const outputBaseName = buildNoteFileName(
+			meetingName,
+			fileCreationTime,
+			plugin.settings.fileNameOrder,
+			plugin.settings.fileNameDateFormat
+		);
 
-		const targetFile = plugin.app.vault.getAbstractFileByPath(newFilePath);
+		let newFilePath = normalizePath(`${folderPath}/${outputBaseName}.md`);
+		let targetFile = plugin.app.vault.getAbstractFileByPath(newFilePath);
+
+		// A note already at that name belongs to a different meeting unless it
+		// names this transcript as its source. Rather than replace it, fall back
+		// to a name carrying this meeting's time.
+		if (targetFile instanceof TFile && !(await noteCameFrom(plugin, targetFile, file.path))) {
+			const timeSuffix: string = typedMoment(fileCreationTime).format("HH-mm-ss");
+			newFilePath = normalizePath(`${folderPath}/${outputBaseName} ${timeSuffix}.md`);
+			targetFile = plugin.app.vault.getAbstractFileByPath(newFilePath);
+		}
+
 		if (targetFile instanceof TFile) {
 			await plugin.app.vault.modify(targetFile, mdContent);
 			if (showNotice) new Notice(`Updated ${newFilePath}`);
